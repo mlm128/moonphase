@@ -167,7 +167,7 @@ class MoonPhaseCalculator:
      \\_____/
 """
         elif phase_name == "Full Moon":
-            return """
+            return r"""
        _____
      |       |
     |         |
@@ -226,7 +226,7 @@ class MoonPhaseCalculator:
         elif is_waning:
             # Waning phases: lit from the left
             if illumination > 75:
-                return """
+                return r"""
        _____
      |   .   \
     |         |
@@ -237,7 +237,7 @@ class MoonPhaseCalculator:
      \_____/
 """
             elif illumination > 50:
-                return """
+                return r"""
        _____
      |      . \
     |          |
@@ -248,7 +248,7 @@ class MoonPhaseCalculator:
      \_____/
 """
             elif illumination > 25:
-                return """
+                return r"""
        _____
      |       \
     |         \

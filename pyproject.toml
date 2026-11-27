@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moonphase-plus"
+version = "2.0.0"
+description = "Advanced moon phase calculator with beautiful visualizations"
+readme = "README_GITHUB.md"
+authors = [
+    {name = "YG", email = "your.email@example.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Astronomy",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["moon", "phase", "astronomy", "calculator", "visualization"]
+dependencies = [
+    # Core works with standard library
+]
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+gui = ["Pillow>=9.0.0"]
+full = ["Pillow>=9.0.0", "matplotlib>=3.5.0", "rich>=12.0.0"]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "black>=22.0", "flake8>=5.0", "mypy>=0.990"]
+docs = ["sphinx>=5.0", "sphinx-rtd-theme>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/YOUR_USERNAME/moonphase-plus"
+Issues = "https://github.com/YOUR_USERNAME/moonphase-plus/issues"
+Source = "https://github.com/YOUR_USERNAME/moonphase-plus"
+Documentation = "https://github.com/YOUR_USERNAME/moonphase-plus/wiki"
+
+[project.scripts]
+moonphase = "moonphase_final:main"
+moonphase-gui = "moonphase_modern:main"
+moonphase-web = "moonphase_web:main"
+
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=moonphase_plus --cov-report=term-missing"
+
+[coverage.run]
+source = ["moonphase_plus"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/setup.py",
+]
