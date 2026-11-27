@@ -70,6 +70,25 @@
   .yrRow .nm { color: #c9cdd8; font-size: 14px; }
   .yrRow .nm b { color: #f5f3eb; }
   .yrRow.newMoon .nm b { color: #9aa0b0; }
+  #moodBox { margin-top: 22px; background: #101018; border: 1px solid #23232f; border-radius: 12px; padding: 16px 14px; }
+  .moodTitle { font-size: 13px; letter-spacing: .3em; text-indent: .3em; color: #c9cdd8; }
+  .moodRow { display: flex; justify-content: center; gap: 10px; margin: 14px 0 12px; }
+  .moodRow button {
+    font-size: 26px; width: 52px; height: 52px; border-radius: 50%; padding: 0;
+    background: #17171f; border: 1px solid #2c2c3a; line-height: 1;
+  }
+  .moodRow button.on { background: #e8e4d8; border-color: #e8e4d8; transform: scale(1.08); }
+  #moodNote {
+    width: 100%; background: #0b0b12; border: 1px solid #262633; border-radius: 9px;
+    color: #eceaf2; padding: 9px 12px; font-size: 14px; font-family: inherit;
+  }
+  #moodStats { margin-top: 14px; text-align: left; }
+  #moodStats .hint { color: #8b90a0; font-size: 12.5px; text-align: center; }
+  .statRow { display: flex; align-items: center; gap: 9px; margin-top: 6px; font-size: 13px; }
+  .statRow .pn { width: 52px; color: #c9cdd8; white-space: nowrap; }
+  .statRow .bar { flex: 1; margin-top: 0; }
+  .statRow .pv { width: 64px; color: #9aa0b0; white-space: nowrap; }
+  .day .dot { width: 7px; height: 7px; border-radius: 50%; margin: 3px auto 0; }
 </style>
 </head>
 <body>
@@ -96,6 +115,19 @@
       <div class="bar"><div id="progBar" style="width:0%"></div></div>
       <div class="v" id="nextTxt" style="font-size:14.5px;margin-top:8px;color:#c9cdd8">—</div>
     </div>
+  </div>
+
+  <div id="moodBox">
+    <div class="moodTitle">今 日 心 情 打 卡</div>
+    <div class="moodRow" id="moodRow">
+      <button data-m="1">😞</button>
+      <button data-m="2">😕</button>
+      <button data-m="3">😐</button>
+      <button data-m="4">🙂</button>
+      <button data-m="5">😄</button>
+    </div>
+    <input type="text" id="moodNote" placeholder="给这天留一句话（可不填）" maxlength="60">
+    <div id="moodStats"></div>
   </div>
 
   <div id="cycle">
@@ -323,6 +355,12 @@ function buildCal() {
     if (illum > 0.985) tag.textContent = "满月";
     else if (illum < 0.015) tag.textContent = "新月";
     cell.appendChild(cv); cell.appendChild(dn); cell.appendChild(tag);
+    const rec = moods[dateKey(calY, calM, d)];
+    if (rec && rec.s) {
+      const dot = document.createElement("div");
+      dot.className = "dot"; dot.style.background = MOOD_COLORS[rec.s];
+      cell.appendChild(dot);
+    }
     cell.onclick = () => setDate(calY, calM, d);
     grid.appendChild(cell);
   }
@@ -373,6 +411,62 @@ function buildYear() {
 $("yrPrev").onclick = () => { listYear--; buildYear(); };
 $("yrNext").onclick = () => { listYear++; buildYear(); };
 
+// ---------- mood check-in (localStorage) ----------
+const MOOD_KEY = "moonphase-mood-v1";
+const MOOD_COLORS = ["", "#8a5560", "#b07a4e", "#c2ab52", "#84b45e", "#43c489"];
+let moods = {};
+try { moods = JSON.parse(localStorage.getItem(MOOD_KEY) || "{}"); } catch (e) { moods = {}; }
+function saveMoods() { try { localStorage.setItem(MOOD_KEY, JSON.stringify(moods)); } catch (e) {} }
+function dateKey(y, m, d) {
+  const p = n => String(n).padStart(2, "0");
+  return `${y}-${p(m + 1)}-${p(d)}`;
+}
+function renderMood() {
+  if (!cur) return;
+  const rec = moods[dateKey(cur.y, cur.m, cur.d)] || {};
+  document.querySelectorAll("#moodRow button").forEach(b =>
+    b.classList.toggle("on", Number(b.dataset.m) === rec.s));
+  if (document.activeElement !== $("moodNote")) $("moodNote").value = rec.n || "";
+  // stats by phase
+  const sums = {}, cnts = {};
+  let total = 0;
+  for (const k in moods) {
+    const s = moods[k].s; if (!s) continue;
+    const [yy, mm, dd] = k.split("-").map(Number);
+    const idx = Math.floor(((ageOf(yy, mm - 1, dd) + SYNODIC / 16) % SYNODIC) / (SYNODIC / 8));
+    sums[idx] = (sums[idx] || 0) + s; cnts[idx] = (cnts[idx] || 0) + 1; total++;
+  }
+  const box = $("moodStats");
+  if (total < 8) {
+    box.innerHTML = `<div class="hint">已打卡 ${total} 天 · 攒到 8 天以上，这里会画出你在每个月相的平均心情</div>`;
+    return;
+  }
+  let html = `<div class="hint" style="text-align:left">月相 × 心情（已打卡 ${total} 天）</div>`;
+  for (let i = 0; i < 8; i++) {
+    if (!cnts[i]) continue;
+    const avg = sums[i] / cnts[i];
+    html += `<div class="statRow"><span class="pn">${PHASES[i][0]}</span>` +
+      `<span class="bar"><div style="width:${(avg / 5 * 100).toFixed(0)}%"></div></span>` +
+      `<span class="pv">${avg.toFixed(1)} 分 · ${cnts[i]} 天</span></div>`;
+  }
+  box.innerHTML = html;
+}
+document.querySelectorAll("#moodRow button").forEach(b => {
+  b.onclick = () => {
+    const k = dateKey(cur.y, cur.m, cur.d);
+    moods[k] = moods[k] || {};
+    moods[k].s = Number(b.dataset.m);
+    saveMoods(); renderMood(); buildCal();
+  };
+});
+$("moodNote").addEventListener("change", e => {
+  const k = dateKey(cur.y, cur.m, cur.d);
+  moods[k] = moods[k] || {};
+  moods[k].n = e.target.value.trim();
+  if (!moods[k].s && !moods[k].n) delete moods[k];
+  saveMoods();
+});
+
 const now = new Date();
 calY = now.getFullYear(); calM = now.getMonth();
 listYear = now.getFullYear();
@@ -380,7 +474,7 @@ setDate(now.getFullYear(), now.getMonth(), now.getDate());
 buildCal(); buildYear();
 loadTexture();
 const _refresh0 = refresh;
-refresh = function () { _refresh0(); buildCal(); };
+refresh = function () { _refresh0(); buildCal(); renderMood(); };
 </script>
 </body>
 </html>

@@ -12,6 +12,8 @@ Moon phase tools: a text CLI and a photographic image renderer.
   date, illumination, moon age, cycle progress, a clickable 12-moon
   strip of the whole cycle, a monthly moon calendar, and a yearly
   list of full moons (with their traditional names) and new moons.
+  It also has a daily mood check-in (stored locally in the browser)
+  that, over time, charts your average mood per moon phase.
   Just open it in a browser.
 
 Both share the same math: synodic month 29.530588853 days, anchored at
