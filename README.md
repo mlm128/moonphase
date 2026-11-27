@@ -7,6 +7,10 @@ Moon phase tools: a text CLI and a photographic image renderer.
 - `moonphase_img.py` — photographic output: renders the moon for any
   date from a real full-moon texture, shaded per-pixel by the true
   terminator geometry. Three modes below.
+- `moonphase.html` — a self-contained web UI (no server, no network):
+  pick a date and the moon appears, with phase name, lunar-calendar
+  date, illumination, moon age, cycle progress and a clickable
+  12-moon strip of the whole cycle. Just open it in a browser.
 
 Both share the same math: synodic month 29.530588853 days, anchored at
 the new moon of 2000-01-06 18:14 UTC.
