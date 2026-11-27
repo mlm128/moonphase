@@ -9,8 +9,10 @@ Moon phase tools: a text CLI and a photographic image renderer.
   terminator geometry. Three modes below.
 - `moonphase.html` — a self-contained web UI (no server, no network):
   pick a date and the moon appears, with phase name, lunar-calendar
-  date, illumination, moon age, cycle progress and a clickable
-  12-moon strip of the whole cycle. Just open it in a browser.
+  date, illumination, moon age, cycle progress, a clickable 12-moon
+  strip of the whole cycle, a monthly moon calendar, and a yearly
+  list of full moons (with their traditional names) and new moons.
+  Just open it in a browser.
 
 Both share the same math: synodic month 29.530588853 days, anchored at
 the new moon of 2000-01-06 18:14 UTC.

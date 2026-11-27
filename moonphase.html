@@ -48,6 +48,28 @@
   #strip figcaption { font-size: 11px; color: #9aa0b0; margin-top: 4px; }
   #strip figure.on figcaption { color: #f5f3eb; font-weight: 600; }
   .foot { color: #565b6b; font-size: 11.5px; margin-top: 26px; line-height: 1.7; }
+  #calBox, #yearBox { margin-top: 30px; }
+  .calHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .calHead button { padding: 5px 14px; font-size: 17px; }
+  .calTitle { font-size: 16.5px; font-weight: 600; letter-spacing: .12em; }
+  .weekRow { display: grid; grid-template-columns: repeat(7, 1fr); color: #8b90a0; font-size: 12px; margin-bottom: 6px; }
+  #calGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .day { background: #101018; border: 1px solid #22222e; border-radius: 10px; padding: 5px 2px 6px; cursor: pointer; }
+  .day.empty { background: transparent; border: none; cursor: default; }
+  .day canvas { width: 82%; aspect-ratio: 1; display: block; margin: 0 auto; }
+  .day .dn { font-size: 12.5px; margin-top: 2px; }
+  .day .tag { font-size: 10px; color: #d8c98a; height: 13px; }
+  .day.today { border-color: #6d7285; }
+  .day.on { border-color: #e8e4d8; background: #1a1a26; }
+  .yrRow {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    padding: 9px 12px; border: 1px solid #22222e; border-radius: 10px; margin-bottom: 7px;
+    background: #101018; cursor: pointer; text-align: left;
+  }
+  .yrRow .dt { font-size: 14.5px; white-space: nowrap; }
+  .yrRow .nm { color: #c9cdd8; font-size: 14px; }
+  .yrRow .nm b { color: #f5f3eb; }
+  .yrRow.newMoon .nm b { color: #9aa0b0; }
 </style>
 </head>
 <body>
@@ -79,6 +101,25 @@
   <div id="cycle">
     <div class="k">这 一 个 周 期（点任意一个跳过去）</div>
     <div id="strip"></div>
+  </div>
+
+  <div id="calBox">
+    <div class="calHead">
+      <button id="calPrev">‹</button>
+      <div class="calTitle" id="calTitle">—</div>
+      <button id="calNext">›</button>
+    </div>
+    <div class="weekRow"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+    <div id="calGrid"></div>
+  </div>
+
+  <div id="yearBox">
+    <div class="calHead">
+      <button id="yrPrev">‹</button>
+      <div class="calTitle" id="yrTitle">—</div>
+      <button id="yrNext">›</button>
+    </div>
+    <div id="yrList"></div>
   </div>
 
   <div class="foot">月面纹理：Wikimedia Commons 满月照片（Luc Viatour）<br>月龄锚点：2000-01-06 18:14 UTC 新月 · 朔望月 29.530588853 天</div>
@@ -145,7 +186,8 @@ function loadTexture() {
 }
 
 // ---------- render one moon into a canvas ----------
-function drawMoon(canvas, age) {
+function drawMoon(canvas, age, res) {
+  res = res || TEXN;
   const N = canvas.width, ctx = canvas.getContext("2d");
   ctx.fillStyle = "#000"; ctx.fillRect(0, 0, N, N);
   // stars
@@ -161,21 +203,23 @@ function drawMoon(canvas, age) {
   ctx.globalAlpha = 1;
   if (!texData) return;
   // render at texture resolution, then scale up
-  const off = document.createElement("canvas"); off.width = off.height = TEXN;
+  const off = document.createElement("canvas"); off.width = off.height = res;
   const og = off.getContext("2d");
-  const out = og.createImageData(TEXN, TEXN);
+  const out = og.createImageData(res, res);
   const th = 2 * Math.PI * age / SYNODIC, st = Math.sin(th), ct = Math.cos(th);
-  const R = TEXN / 2;
-  for (let py = 0; py < TEXN; py++) {
+  const R = res / 2, step = TEXN / res;
+  for (let py = 0; py < res; py++) {
     const y = (py - R) / R;
-    for (let px = 0; px < TEXN; px++) {
-      const x = (px - R) / R, r2 = x * x + y * y, o = (py * TEXN + px) * 4;
+    const ty = Math.min(TEXN - 1, Math.floor(py * step));
+    for (let px = 0; px < res; px++) {
+      const x = (px - R) / R, r2 = x * x + y * y, o = (py * res + px) * 4;
       if (r2 > 1) { out.data[o + 3] = 255; continue; }
       const z = Math.sqrt(1 - r2);
       const v = x * st - z * ct;
       let light = 0.5 + v / (2 * 0.055);
       light = light < 0 ? 0 : light > 1 ? 1 : light;
-      const b = Math.round(texData[py * TEXN + px] * (0.03 + 0.97 * light) * 255);
+      const tx = Math.min(TEXN - 1, Math.floor(px * step));
+      const b = Math.round(texData[ty * TEXN + tx] * (0.03 + 0.97 * light) * 255);
       out.data[o] = out.data[o + 1] = out.data[o + 2] = b; out.data[o + 3] = 255;
     }
   }
@@ -223,7 +267,7 @@ function buildStrip(y, m, d, age) {
     const dt = new Date(start); dt.setDate(dt.getDate() + Math.round(a));
     const fig = document.createElement("figure");
     const cv = document.createElement("canvas"); cv.width = cv.height = 144;
-    drawMoon(cv, a);
+    drawMoon(cv, a, 160);
     const cap = document.createElement("figcaption");
     const { name, illum } = phaseOf(a);
     cap.textContent = `${dt.getMonth() + 1}/${dt.getDate()} ${name[0]}`;
@@ -236,6 +280,7 @@ function buildStrip(y, m, d, age) {
 
 function setDate(y, m, d) {
   cur = { y, m, d };
+  calY = y; calM = m;
   const pad = n => String(n).padStart(2, "0");
   $("dateInput").value = `${y}-${pad(m + 1)}-${pad(d)}`;
   refresh();
@@ -254,9 +299,88 @@ $("dlBtn").onclick = () => {
   a.click();
 };
 
+// ---------- monthly calendar ----------
+let calY = null, calM = null;
+function buildCal() {
+  if (calY === null) return;
+  $("calTitle").textContent = `${calY} 年 ${calM + 1} 月`;
+  const grid = $("calGrid"); grid.innerHTML = "";
+  const first = (new Date(calY, calM, 1).getDay() + 6) % 7; // Monday start
+  const days = new Date(calY, calM + 1, 0).getDate();
+  const today = new Date();
+  for (let i = 0; i < first; i++) {
+    const e = document.createElement("div"); e.className = "day empty"; grid.appendChild(e);
+  }
+  for (let d = 1; d <= days; d++) {
+    const age = ageOf(calY, calM, d), { name, illum } = phaseOf(age);
+    const cell = document.createElement("div"); cell.className = "day";
+    if (today.getFullYear() === calY && today.getMonth() === calM && today.getDate() === d) cell.classList.add("today");
+    if (cur && cur.y === calY && cur.m === calM && cur.d === d) cell.classList.add("on");
+    const cv = document.createElement("canvas"); cv.width = cv.height = 96;
+    drawMoon(cv, age, 96);
+    const dn = document.createElement("div"); dn.className = "dn"; dn.textContent = d;
+    const tag = document.createElement("div"); tag.className = "tag";
+    if (illum > 0.985) tag.textContent = "满月";
+    else if (illum < 0.015) tag.textContent = "新月";
+    cell.appendChild(cv); cell.appendChild(dn); cell.appendChild(tag);
+    cell.onclick = () => setDate(calY, calM, d);
+    grid.appendChild(cell);
+  }
+}
+$("calPrev").onclick = () => { calM--; if (calM < 0) { calM = 11; calY--; } buildCal(); };
+$("calNext").onclick = () => { calM++; if (calM > 11) { calM = 0; calY++; } buildCal(); };
+
+// ---------- yearly full / new moon list ----------
+const FULL_NAMES = ["狼月", "雪月", "蠕虫月", "粉月", "花月", "草莓月",
+                    "雄鹿月", "鲟鱼月", "玉米月", "猎人月", "海狸月", "冷月"];
+const FULL_EN = ["Wolf", "Snow", "Worm", "Pink", "Flower", "Strawberry",
+                 "Buck", "Sturgeon", "Corn", "Hunter's", "Beaver", "Cold"];
+let listYear = null;
+function buildYear() {
+  if (listYear === null) return;
+  $("yrTitle").textContent = `${listYear} 年满月与新月`;
+  const box = $("yrList"); box.innerHTML = "";
+  const items = [];
+  const seenFullMonths = {};
+  let prevAge = ageOf(listYear - 1, 11, 31);
+  for (let m = 0; m < 12; m++) {
+    const days = new Date(listYear, m + 1, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const age = ageOf(listYear, m, d);
+      if (age < prevAge) { // wrapped -> new moon happened around here
+        items.push({ y: listYear, m, d, kind: "new" });
+      }
+      if (prevAge < SYNODIC / 2 && age >= SYNODIC / 2) {
+        items.push({ y: listYear, m, d, kind: "full" });
+      }
+      prevAge = age;
+    }
+  }
+  for (const it of items) {
+    const row = document.createElement("div");
+    row.className = "yrRow" + (it.kind === "new" ? " newMoon" : "");
+    let nm;
+    if (it.kind === "full") {
+      const blue = seenFullMonths[it.m] ? " · 蓝月" : "";
+      seenFullMonths[it.m] = true;
+      nm = `<b>满月 · ${FULL_NAMES[it.m]}</b> ${FULL_EN[it.m]} Moon${blue}`;
+    } else nm = `<b>新月</b>`;
+    row.innerHTML = `<span class="dt">${it.m + 1} 月 ${it.d} 日</span><span class="nm">${nm}</span>`;
+    row.onclick = () => setDate(it.y, it.m, it.d);
+    box.appendChild(row);
+  }
+}
+$("yrPrev").onclick = () => { listYear--; buildYear(); };
+$("yrNext").onclick = () => { listYear++; buildYear(); };
+
 const now = new Date();
+calY = now.getFullYear(); calM = now.getMonth();
+listYear = now.getFullYear();
 setDate(now.getFullYear(), now.getMonth(), now.getDate());
+buildCal(); buildYear();
 loadTexture();
+const _refresh0 = refresh;
+refresh = function () { _refresh0(); buildCal(); };
 </script>
 </body>
 </html>
